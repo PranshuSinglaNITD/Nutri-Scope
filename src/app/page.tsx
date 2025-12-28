@@ -1,97 +1,83 @@
 "use client";
+import { useState } from 'react';
+import { experimental_useObject as useObject } from '@ai-sdk/react'
+import { RiskCard ,NutrientTable, SafetyBadge } from '@/components/dumbComponents';
+import { z } from 'zod';
 
-import { useState } from "react";
-import axios from "axios";
-import toast from "react-hot-toast";
+// 1. The Mapping Registry
+const COMPONENT_MAP: Record<string, React.FC<any>> = {
+  RiskCard: RiskCard,
+  NutrientTable: NutrientTable,
+  SafetyBadge: SafetyBadge,
+};
 
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
+// 2. Define Schema for TypeScript Safety (Optional but recommended)
+const analysisSchema = z.object({
+  uiComponents: z.array(z.object({
+    component: z.string(),
+    props: z.any()
+  }))
+});
 
-export default function AIPage() {
-  const [text, setText] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [messages,setMessages]=useState([])
+export default function Home() {
+  const { object, submit, isLoading } = useObject({
+    api: '/api/ai-response',
+    schema: analysisSchema,
+  });
 
-  // ✅ MAIN FORM SUBMIT
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    console.log({ text, imageUrl });
-    toast.success("Query submitted");
-  };
-
-  const handleImageUpload = async (file: File) => {
-    const formData = new FormData();
-    formData.append("image", file);
-
-    setLoading(true);
-    try {
-      setOpen(false);
-      const res = await axios.post("/api/upload-cloudinary", formData);
-      setImageUrl(res.data.imageUrl);
-      toast.success("Image uploaded");
-    } catch {
-      toast.error("Upload failed");
-    } finally {
-      setLoading(false);
-    }
+    // Convert to base64 for the API
+    const reader = new FileReader();
+    reader.onload = () => {
+      submit({ 
+        imageBase64: reader.result as string,
+        userContext: "I am trying to avoid sugar." // Example context
+      });
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col md:flex-row">
-      <aside className="w-full md:w-[30%] border-r p-4 flex flex-col gap-4">
-        {
-          imageUrl && <img src={imageUrl}></img>
-        }
-        <h2 className="text-lg font-semibold">AI Agent</h2>
+    <div className="max-w-md mx-auto min-h-screen bg-gray-50 p-6">
+      <header className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">🥗 Food Copilot</h1>
+        <p className="text-gray-500 text-sm">AI-Native Health Scanner</p>
+      </header>
 
-        <form onSubmit={onSubmit} className="flex flex-col gap-4 h-full">
-          <Textarea
-            placeholder="Ask the AI something..."
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            className="flex-1 resize-none"
-          />
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button type="button" variant="outline" disabled={loading}>
-                {
-                  loading ? (<Loader2 className="mr-2 h-4 w-4 animate-spin" />) : "Upload Image"
-                }
-              </Button>
-            </DialogTrigger>
+      {/* Input Area */}
+      <div className="mb-8">
+        <label className="block w-full cursor-pointer bg-white border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors">
+          <input type="file" className="hidden" onChange={handleUpload} accept="image/*" />
+          <span className="text-gray-600 font-medium">📸 Tap to Scan Food</span>
+        </label>
+      </div>
 
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Upload Image</DialogTitle>
-              </DialogHeader>
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex justify-center py-10">
+          <div className="animate-pulse flex flex-col items-center">
+            <div className="h-4 w-32 bg-gray-300 rounded mb-2"></div>
+            <span className="text-xs text-gray-400">Analyzing ingredients...</span>
+          </div>
+        </div>
+      )}
 
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleImageUpload(file);
-                }}
-              />
-            </DialogContent>
-          </Dialog>
-
-          <Button type="submit" disabled={loading}>
-            Submit
-          </Button>
-        </form>
-      </aside>
+      {/* GENERATIVE UI RENDERING LOOP */}
+      <div className="space-y-4">
+        {object?.uiComponents?.map((item, index) => {
+          const Component = COMPONENT_MAP[item.component];
+          if (!Component) return null; // Graceful fallback
+          
+          return (
+            <div key={index} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <Component {...item.props} />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
