@@ -1,82 +1,150 @@
 "use client";
-import { useState } from 'react';
-import { experimental_useObject as useObject } from '@ai-sdk/react'
-import { RiskCard ,NutrientTable, SafetyBadge } from '@/components/dumbComponents';
-import { z } from 'zod';
 
-// 1. The Mapping Registry
+import { useEffect, useState } from "react";
+import { experimental_useObject as useObject } from "@ai-sdk/react";
+import { RiskCard, NutrientTable, SafetyBadge } from "@/components/dumbComponents";
+import { z } from "zod";
+import { Camera, Loader2, Sparkles, X } from "lucide-react";
+
+// 1️⃣ Component registry
 const COMPONENT_MAP: Record<string, React.FC<any>> = {
-  RiskCard: RiskCard,
-  NutrientTable: NutrientTable,
-  SafetyBadge: SafetyBadge,
+  RiskCard,
+  NutrientTable,
+  SafetyBadge,
 };
 
-// 2. Define Schema for TypeScript Safety (Optional but recommended)
+// 2️⃣ Lightweight schema (frontend does NOT need full strictness)
 const analysisSchema = z.object({
-  uiComponents: z.array(z.object({
-    component: z.string(),
-    props: z.any()
-  }))
+  uiComponents: z.array(
+    z.object({
+      component: z.string(),
+      props: z.any(),
+    })
+  ),
 });
 
 export default function Home() {
-  const { object, submit, isLoading } = useObject({
-    api: '/api/ai-response',
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState("");
+
+  // 3️⃣ useObject hook (THIS replaces axios)
+  const { object, submit, isLoading, error } = useObject({
+    api: "/api/ai-response",
     schema: analysisSchema,
   });
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Convert to base64 for the API
     const reader = new FileReader();
-    reader.onload = () => {
-      submit({ 
-        imageBase64: reader.result as string,
-        userContext: "I am trying to avoid sugar." // Example context
-      });
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setImagePreview(base64);
+      setImageBase64(base64.split(",")[1]); // 👈 IMPORTANT
     };
     reader.readAsDataURL(file);
   };
 
+  const reset = () => {
+    setImagePreview(null);
+    setImageBase64(null);
+    setPrompt("");
+  };
+
+  const analyzeNutrients = () => {
+    if (!imageBase64) return;
+
+    submit({
+      imageBase64,
+      userContext: prompt,
+    });
+
+  };
+  useEffect(()=>{
+    console.log(object)
+  },[object])
+
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-gray-50 p-6">
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">🥗 Food Copilot</h1>
-        <p className="text-gray-500 text-sm">AI-Native Health Scanner</p>
-      </header>
+    <div className="min-h-screen bg-linear-to-br from-emerald-50 via-teal-50 to-cyan-50">
+      <div className="relative z-10 container mx-auto px-4 py-8 max-w-6xl">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-bold bg-linear-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+            AI Nutrient Analyzer
+          </h1>
+        </div>
 
-      {/* Input Area */}
-      <div className="mb-8">
-        <label className="block w-full cursor-pointer bg-white border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors">
-          <input type="file" className="hidden" onChange={handleUpload} accept="image/*" />
-          <span className="text-gray-600 font-medium">📸 Tap to Scan Food</span>
-        </label>
-      </div>
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Upload */}
+          <div className="bg-white rounded-3xl shadow-xl p-8">
+            {!imagePreview ? (
+              <label className="flex flex-col items-center justify-center h-64 border-dashed border-2 rounded-xl cursor-pointer">
+                <Camera className="w-12 h-12 mb-4 text-emerald-500" />
+                <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
+              </label>
+            ) : (
+              <div className="relative inline-block group">
+                <img
+                  src={imagePreview}
+                  className="rounded-xl"
+                  alt="Preview"
+                />
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex justify-center py-10">
-          <div className="animate-pulse flex flex-col items-center">
-            <div className="h-4 w-32 bg-gray-300 rounded mb-2"></div>
-            <span className="text-xs text-gray-400">Analyzing ingredients...</span>
+                <button
+                  onClick={reset}
+                  className="absolute top-2 right-2 bg-white text-gray-800 rounded-full p-1 shadow-md"
+                  aria-label="Remove image"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              className="w-full mt-4 border rounded-xl p-3"
+              placeholder="E.g. I am diabetic"
+            />
+
+            <button
+              onClick={analyzeNutrients}
+              disabled={!imageBase64 || isLoading}
+              className="w-full mt-4 bg-emerald-500 text-white py-3 rounded-xl flex justify-center gap-2"
+            >
+              {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
+              Analyze
+            </button>
+          </div>
+
+          {/* Results */}
+          <div className="space-y-4">
+            {error && (
+              <div className="bg-red-50 p-4 rounded-xl text-red-600">
+                {error.message}
+              </div>
+            )}
+
+            {object?.uiComponents?.map((item, index) => {
+              const Component = COMPONENT_MAP[item.component];
+              if (!Component) return null;
+
+              return (
+                <div key={index}>
+                  <Component {...item.props} />
+                </div>
+              );
+            })}
+
+            {!object && !isLoading && (
+              <div className="text-gray-400 text-center">
+                Upload an image to begin
+              </div>
+            )}
           </div>
         </div>
-      )}
-
-      {/* GENERATIVE UI RENDERING LOOP */}
-      <div className="space-y-4">
-        {object?.uiComponents?.map((item, index) => {
-          const Component = COMPONENT_MAP[item.component];
-          if (!Component) return null; // Graceful fallback
-          
-          return (
-            <div key={index} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <Component {...item.props} />
-            </div>
-          );
-        })}
       </div>
     </div>
   );
