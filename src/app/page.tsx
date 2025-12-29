@@ -2,15 +2,31 @@
 
 import { useEffect, useState } from "react";
 import { experimental_useObject as useObject } from "@ai-sdk/react";
-import { RiskCard, NutrientTable, SafetyBadge } from "@/components/dumbComponents";
+import {
+  RiskCard,
+  NutrientTable,
+  SafetyBadge,
+  WarningCard,
+  IngredientTable,
+  HealthBadge,
+  ScienceExplainer,
+  AlternativeSuggestionCard,
+} from "@/components/dumbComponents";
 import { z } from "zod";
 import { Camera, Loader2, Sparkles, X } from "lucide-react";
 
 // 1️⃣ Component registry
 const COMPONENT_MAP: Record<string, React.FC<any>> = {
+  // legacy names
   RiskCard,
   NutrientTable,
   SafetyBadge,
+  // new canonical names
+  WarningCard,
+  IngredientTable,
+  HealthBadge,
+  ScienceExplainer,
+  AlternativeSuggestionCard,
 };
 
 // 2️⃣ Lightweight schema (frontend does NOT need full strictness)
@@ -128,12 +144,13 @@ export default function Home() {
             )}
 
             {object?.uiComponents?.map((item, index) => {
-              const Component = COMPONENT_MAP[item.component];
+              if (!item || !item.component) return null;
+              const Component = COMPONENT_MAP[item.component as string] as React.FC<any> | undefined;
               if (!Component) return null;
 
               return (
                 <div key={index}>
-                  <Component {...item.props} />
+                  <Component {...(item.props ?? {})} />
                 </div>
               );
             })}
