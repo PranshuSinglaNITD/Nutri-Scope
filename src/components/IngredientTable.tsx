@@ -4,7 +4,7 @@ import { Info } from 'lucide-react';
 type Item = { label: string; value: string; status?: 'good' | 'bad' };
 type Props = { items: Item[] };
 
-export default function IngredientTable({ items }: Props) {
+export default function IngredientTable({ items }: {items : string[]}) {
   return (
     <div className="relative bg-white rounded-2xl border border-gray-200 shadow-md overflow-hidden mb-5">
       {/* subtle background glow */}
@@ -20,8 +20,10 @@ export default function IngredientTable({ items }: Props) {
 
       {/* rows */}
       <div className="relative divide-y divide-gray-100">
-        {items.map((item, idx) => (
-          <div
+        {items.map((i, idx) => {
+          const item=JSON.parse(i);
+          return (
+            <div
             key={idx}
             className="flex justify-between items-center px-4 py-3 hover:bg-gray-50/60 transition-colors"
           >
@@ -49,7 +51,8 @@ export default function IngredientTable({ items }: Props) {
               )}
             </div>
           </div>
-        ))}
+          )
+      })}
       </div>
     </div>
   );

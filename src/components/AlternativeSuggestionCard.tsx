@@ -6,7 +6,7 @@ type Props = {
   suggestions: Suggestion[];
 };
 
-export default function AlternativeSuggestionCard({ suggestions }: Props) {
+export default function AlternativeSuggestionCard({ suggestions }: {suggestions : string[]}) {
   return (
     <div className="relative bg-white rounded-2xl border border-gray-200 shadow-md p-5 mb-5 overflow-hidden">
       {/* soft background glow */}
@@ -24,8 +24,10 @@ export default function AlternativeSuggestionCard({ suggestions }: Props) {
 
       {/* suggestions */}
       <div className="relative space-y-3">
-        {suggestions.map((s, i) => (
-          <div
+        {suggestions.map((suggestion, i) => {
+          const s=JSON.parse(suggestion);
+          return (
+            <div
             key={i}
             className="group p-4 rounded-xl bg-linear-to-r from-emerald-50 to-white border border-emerald-100 hover:border-emerald-300 hover:shadow-sm transition-all"
           >
@@ -54,7 +56,8 @@ export default function AlternativeSuggestionCard({ suggestions }: Props) {
               )}
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   );
