@@ -19,7 +19,7 @@ const inputSchema = z.object({
   history: z.array(
     z.object({
       role: z.enum(['user', 'assistant']),
-      content: z.string() // We pass text history to save tokens/complexity
+      content: z.any() // accept string or structured assistant objects
     })
   ).optional().default([]),
 });
@@ -51,7 +51,6 @@ export async function POST(req: Request) {
     const result = await generateObject({
       // pass provider-specific options so the SDK can authenticate
       model: google('gemini-2.5-flash'),
-      providerOptions: ({ apiKey } as any),
       schema,
       messages: [
         {
@@ -109,14 +108,14 @@ export async function POST(req: Request) {
         },
         ...history.map(msg => ({
           role: msg.role as 'user' | 'assistant',
-          content: msg.content
+          content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
         })),
         {
           role: 'user',
-          content: [
+          content: JSON.stringify([
             { type: 'text', text: `Context: ${userContext || 'General health check'}` },
             ...(imageBase64 ? ([{ type: 'image', image: imageBase64 as string }] as any) : []),
-          ]
+          ])
         }
       ],
     });
