@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { DosAndDontsGrid } from "@/components/DosAndDontsGrid";
 import { MethodologyStepper } from "@/components/MethodologyStepper";
 import { QuickVerdict } from "@/components/QuickVerdict";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // 1️⃣ Component Registry
 const COMPONENT_MAP: Record<string, React.FC<any>> = {
@@ -75,28 +76,6 @@ export default function Home() {
   },[object])
 
   // Simple ErrorBoundary to prevent a single broken card from crashing the whole feed
-  class ErrorBoundary extends (require('react').Component as any) {
-    constructor(props: any) {
-      super(props);
-      this.state = { hasError: false };
-    }
-    static getDerivedStateFromError() {
-      return { hasError: true };
-    }
-    componentDidCatch(error: any, info: any) {
-      console.error('Component render error:', error, info);
-    }
-    render() {
-      if (this.state.hasError) {
-        return (
-          <div className="p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 text-sm">
-            Failed to render a card.
-          </div>
-        );
-      }
-      return this.props.children;
-    }
-  }
 
   // If the AI omitted a WarningCard but other cards indicate risk, synthesize one
     const synthesizeWarningIfNeeded = (components: any[] = []) => {
@@ -191,84 +170,6 @@ export default function Home() {
       // If warning already present, still remove HealthBadge and keep order
       return [warning, ...withoutBadge];
     };
-
-  // Compute a quick heuristic nutrition score from the AI components
-  // const computeNutritionScore = (components: any[] = []) => {
-  //   let score = 100;
-  //   const tips: string[] = [];
-  //   for (const c of components) {
-  //     if (!c || !c.component || !c.props) continue;
-  //     const { component, props } = c;
-  //     if (component === 'MacroDistribution') {
-  //       const carbs = Number(props?.carbs ?? 0);
-  //       const protein = Number(props?.protein ?? 0);
-  //       const fat = Number(props?.fat ?? 0);
-  //       const total = carbs + protein + fat || 1;
-  //       const carbsPct = (carbs / total) * 100;
-  //       if (carbsPct > 60) {
-  //         score -= 20;
-  //         tips.push('High carbohydrate ratio — consider lower-carb alternatives.');
-  //       }
-  //       if (protein < 10) {
-  //         score -= 10;
-  //         tips.push('Low protein — add a lean protein source.');
-  //       }
-  //     }
-  //     if (component === 'ProcessingMeter') {
-  //       const level = Number(props?.level ?? 1);
-  //       if (level >= 4) {
-  //         score -= 30;
-  //         tips.push('Ultra-processed ingredients detected — limit frequency.');
-  //       } else if (level === 3) {
-  //         score -= 10;
-  //         tips.push('Moderately processed — prefer fresher alternatives when possible.');
-  //       }
-  //     }
-  //     if (component === 'IngredientTable' && Array.isArray(props.items)) {
-  //       const bad = props.items.filter((it: any) => it?.status === 'bad');
-  //       if (bad.length) {
-  //         score -= Math.min(30, bad.length * 8);
-  //         tips.push(`Contains concerning ingredients: ${bad.map((b: any) => b.label || b).slice(0,3).join(', ')}.`);
-  //       }
-  //     }
-  //     if (component === 'WarningCard') {
-  //       score -= 15;
-  //       tips.push(props?.reasoning || 'Warning flagged by AI.');
-  //     }
-  //     if (component === 'ComparisonCard' && props?.sentiment === 'negative') {
-  //       score -= 8;
-  //       tips.push(`Compared unfavorably for ${props?.nutrient || 'a key nutrient'}.`);
-  //     }
-  //   }
-
-  //   score = Math.max(0, Math.min(100, score));
-  //   // If AI or our detection indicates a warning/concern, force score under 50
-  //   const hasWarningCard = components.some((c) => c?.component === 'WarningCard');
-  //   const detectConcerns = () => {
-  //     for (const c of components) {
-  //       if (!c || !c.component || !c.props) continue;
-  //       if (c.component === 'IngredientTable' && Array.isArray(c.props.items)) {
-  //         if (c.props.items.some((it: any) => it?.status === 'bad')) return true;
-  //       }
-  //       if (c.component === 'ProcessingMeter' && Number(c.props?.level) >= 4) return true;
-  //       if (c.component === 'MacroDistribution') {
-  //         const carbs = Number(c.props?.carbs ?? 0);
-  //         const protein = Number(c.props?.protein ?? 0);
-  //         const fat = Number(c.props?.fat ?? 0);
-  //         const total = carbs + protein + fat || 1;
-  //         const carbsPct = (carbs / total) * 100;
-  //         if (carbsPct > 55) return true;
-  //       }
-  //     }
-  //     return false;
-  //   };
-
-  //   if (hasWarningCard || detectConcerns()) {
-  //     score = Math.min(score, 49);
-  //   }
-
-  //   return { score, tips };
-  // };
 
   // Auto-scroll to bottom when chat updates
   useEffect(() => {
@@ -483,7 +384,7 @@ export default function Home() {
       {/* -----------------------------------------------------------------
           3. INPUT AREA (Fixed Bottom - ~20% Height)
           ----------------------------------------------------------------- */}
-      <footer className="shrink-0 bg-white/80 backdrop-blur-md border-t border-gray-200 p-4 h-[20vh] min-h-[160px] flex flex-col justify-center">
+      <footer className="shrink-0 bg-white/80 backdrop-blur-md border-t border-gray-200 p-4 h-[20vh] min-h-40 flex flex-col justify-center">
         <div className="max-w-3xl mx-auto w-full h-full flex flex-col gap-3">
           
           {/* Row 1: Image Preview (if active) OR Context Hints */}
