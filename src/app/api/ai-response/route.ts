@@ -70,7 +70,7 @@ export async function POST(req: Request) {
             You must ONLY return a JSON object with a 'uiComponents' array.
             Each item in the array MUST follow this exact structure:
             {
-              "component": "WarningCard" | "HealthBadge" | "IngredientTable" | "ScienceExplainer" | "AlternativeSuggestionCard" | "ProcessingMeter" | "MacroDistribution" | "SmartFollowUp",
+              "component": "WarningCard" | "HealthBadge" | "IngredientTable" | "ScienceExplainer" | "AlternativeSuggestionCard" | "ProcessingMeter" | "MacroDistribution" | "SmartFollowUp" | "ComparisonCard" | "QuickVerdict" | "DosAndDontsGrid" | "MethodologyStepper" | "NutritionScore",
               "props": { ...specific props for that component... }
             }
 
@@ -101,10 +101,24 @@ export async function POST(req: Request) {
 
             9.Use Case 'ComparisonCard': Numbers are abstract. "20g Sugar" is confusing. "Equivalent to 5 sugar cubes" or "30% less than a Snickers" provides instant context.
               Props : {nutrient: string, currentValue: string, comparisonText: string, sentiment: 'positive' | 'negative' | 'neutral'}
+
+            10.Use Case 'QuickVerdict' : Answering binary questions like "Can I eat potatoes if I have diabetes?" or "Is this safe if it's not fried?"\
+              Props : { status: 'safe' | 'caution' | 'avoid', title: string, explanation: string, nuanceTag: string }
+
+            11.Use Case : 'DosAndDontsGrid' : Answering broad queries like "What other foods should I avoid with Jaundice?" or "What acts as a good substitute?"
+              Props : { condition: string, recommended: ["{name : string,reason : string}"], avoid: ["{name : string,reason : string}"] }
+            
+            12.Use Case : 'MethodologyStepper' : Explaining processes. "How do I reduce the starch?" or "Why does frying make it unhealthy?"  
+              Props : { title : string, steps : ["{action: string,detail: string,tip: string}"] }
+
+            13.Use Case : 'NutritionScore' : Instantly visualizing the overall healthiness or suitability of a food product with a color-coded 0-100 rating and a brief summary verdict
+              Props : { score : number, subtitle : string, feedback : string }
             
             Do NOT invent new component types like "productCard".
             Do NOT output flat JSON. Use the nested 'props' structure.
-            If the image is blurry or text is unreadable, use 'ScienceExplainer' to ask the user to retake the photo.`
+            If the image is blurry or text is unreadable, use 'ScienceExplainer' to ask the user to retake the photo.
+            Only show the neccessary components and avoid unneccasary components
+            Keep the order of components so that it make the most sense`
         },
         ...history.map(msg => ({
           role: msg.role as 'user' | 'assistant',

@@ -3,10 +3,10 @@ import { ChevronDown } from 'lucide-react';
 
 type Props = {
   title?: string;
-  explaination: string;
+  explanation: string;
 };
 
-export default function ScienceExplainer({ title = 'Why this matters', explaination }: Props) {
+export default function ScienceExplainer({ title = 'Why this matters', explanation }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -41,7 +41,7 @@ export default function ScienceExplainer({ title = 'Why this matters', explainat
           ${open ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}
         `}
       >
-        {explaination}
+        {explanation}
       </div>
     </div>
   );

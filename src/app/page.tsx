@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { experimental_useObject as useObject } from "@ai-sdk/react"; // Ensure correct import for your SDK version
-import { z } from "zod";
+import { object, z } from "zod";
 import { Camera, Loader2, Moon, Sparkles, Sun, X, User, Bot } from "lucide-react";
 import WarningCard from "@/components/WarningCard";
 import IngredientTable from "@/components/IngredientTable";
@@ -13,9 +13,12 @@ import { ComparisonCard } from "@/components/ComparisonCard";
 import { MacroDistribution } from "@/components/MacroDistribution";
 import { ProcessingMeter } from "@/components/ProcessingMeter";
 import { SmartFollowUp } from "@/components/SmartFollowUp";
-import NutritionScore from "@/components/NutritionScore";
+import {NutritionScore} from "@/components/NutritionScore";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
+import { DosAndDontsGrid } from "@/components/DosAndDontsGrid";
+import { MethodologyStepper } from "@/components/MethodologyStepper";
+import { QuickVerdict } from "@/components/QuickVerdict";
 
 // 1️⃣ Component Registry
 const COMPONENT_MAP: Record<string, React.FC<any>> = {
@@ -27,8 +30,13 @@ const COMPONENT_MAP: Record<string, React.FC<any>> = {
   ComparisonCard,
   MacroDistribution,
   ProcessingMeter,
-  SmartFollowUp
+  SmartFollowUp,
+  DosAndDontsGrid,
+  MethodologyStepper,
+  QuickVerdict,
+  NutritionScore
 };
+
 
 // 2️⃣ Schema
 const analysisSchema = z.object({
@@ -61,6 +69,10 @@ export default function Home() {
     api: "/api/ai-response",
     schema: analysisSchema,
   });
+
+  useEffect(()=>{
+    console.log(object)
+  },[object])
 
   // Simple ErrorBoundary to prevent a single broken card from crashing the whole feed
   class ErrorBoundary extends (require('react').Component as any) {
@@ -181,82 +193,82 @@ export default function Home() {
     };
 
   // Compute a quick heuristic nutrition score from the AI components
-  const computeNutritionScore = (components: any[] = []) => {
-    let score = 100;
-    const tips: string[] = [];
-    for (const c of components) {
-      if (!c || !c.component || !c.props) continue;
-      const { component, props } = c;
-      if (component === 'MacroDistribution') {
-        const carbs = Number(props?.carbs ?? 0);
-        const protein = Number(props?.protein ?? 0);
-        const fat = Number(props?.fat ?? 0);
-        const total = carbs + protein + fat || 1;
-        const carbsPct = (carbs / total) * 100;
-        if (carbsPct > 60) {
-          score -= 20;
-          tips.push('High carbohydrate ratio — consider lower-carb alternatives.');
-        }
-        if (protein < 10) {
-          score -= 10;
-          tips.push('Low protein — add a lean protein source.');
-        }
-      }
-      if (component === 'ProcessingMeter') {
-        const level = Number(props?.level ?? 1);
-        if (level >= 4) {
-          score -= 30;
-          tips.push('Ultra-processed ingredients detected — limit frequency.');
-        } else if (level === 3) {
-          score -= 10;
-          tips.push('Moderately processed — prefer fresher alternatives when possible.');
-        }
-      }
-      if (component === 'IngredientTable' && Array.isArray(props.items)) {
-        const bad = props.items.filter((it: any) => it?.status === 'bad');
-        if (bad.length) {
-          score -= Math.min(30, bad.length * 8);
-          tips.push(`Contains concerning ingredients: ${bad.map((b: any) => b.label || b).slice(0,3).join(', ')}.`);
-        }
-      }
-      if (component === 'WarningCard') {
-        score -= 15;
-        tips.push(props?.reasoning || 'Warning flagged by AI.');
-      }
-      if (component === 'ComparisonCard' && props?.sentiment === 'negative') {
-        score -= 8;
-        tips.push(`Compared unfavorably for ${props?.nutrient || 'a key nutrient'}.`);
-      }
-    }
+  // const computeNutritionScore = (components: any[] = []) => {
+  //   let score = 100;
+  //   const tips: string[] = [];
+  //   for (const c of components) {
+  //     if (!c || !c.component || !c.props) continue;
+  //     const { component, props } = c;
+  //     if (component === 'MacroDistribution') {
+  //       const carbs = Number(props?.carbs ?? 0);
+  //       const protein = Number(props?.protein ?? 0);
+  //       const fat = Number(props?.fat ?? 0);
+  //       const total = carbs + protein + fat || 1;
+  //       const carbsPct = (carbs / total) * 100;
+  //       if (carbsPct > 60) {
+  //         score -= 20;
+  //         tips.push('High carbohydrate ratio — consider lower-carb alternatives.');
+  //       }
+  //       if (protein < 10) {
+  //         score -= 10;
+  //         tips.push('Low protein — add a lean protein source.');
+  //       }
+  //     }
+  //     if (component === 'ProcessingMeter') {
+  //       const level = Number(props?.level ?? 1);
+  //       if (level >= 4) {
+  //         score -= 30;
+  //         tips.push('Ultra-processed ingredients detected — limit frequency.');
+  //       } else if (level === 3) {
+  //         score -= 10;
+  //         tips.push('Moderately processed — prefer fresher alternatives when possible.');
+  //       }
+  //     }
+  //     if (component === 'IngredientTable' && Array.isArray(props.items)) {
+  //       const bad = props.items.filter((it: any) => it?.status === 'bad');
+  //       if (bad.length) {
+  //         score -= Math.min(30, bad.length * 8);
+  //         tips.push(`Contains concerning ingredients: ${bad.map((b: any) => b.label || b).slice(0,3).join(', ')}.`);
+  //       }
+  //     }
+  //     if (component === 'WarningCard') {
+  //       score -= 15;
+  //       tips.push(props?.reasoning || 'Warning flagged by AI.');
+  //     }
+  //     if (component === 'ComparisonCard' && props?.sentiment === 'negative') {
+  //       score -= 8;
+  //       tips.push(`Compared unfavorably for ${props?.nutrient || 'a key nutrient'}.`);
+  //     }
+  //   }
 
-    score = Math.max(0, Math.min(100, score));
-    // If AI or our detection indicates a warning/concern, force score under 50
-    const hasWarningCard = components.some((c) => c?.component === 'WarningCard');
-    const detectConcerns = () => {
-      for (const c of components) {
-        if (!c || !c.component || !c.props) continue;
-        if (c.component === 'IngredientTable' && Array.isArray(c.props.items)) {
-          if (c.props.items.some((it: any) => it?.status === 'bad')) return true;
-        }
-        if (c.component === 'ProcessingMeter' && Number(c.props?.level) >= 4) return true;
-        if (c.component === 'MacroDistribution') {
-          const carbs = Number(c.props?.carbs ?? 0);
-          const protein = Number(c.props?.protein ?? 0);
-          const fat = Number(c.props?.fat ?? 0);
-          const total = carbs + protein + fat || 1;
-          const carbsPct = (carbs / total) * 100;
-          if (carbsPct > 55) return true;
-        }
-      }
-      return false;
-    };
+  //   score = Math.max(0, Math.min(100, score));
+  //   // If AI or our detection indicates a warning/concern, force score under 50
+  //   const hasWarningCard = components.some((c) => c?.component === 'WarningCard');
+  //   const detectConcerns = () => {
+  //     for (const c of components) {
+  //       if (!c || !c.component || !c.props) continue;
+  //       if (c.component === 'IngredientTable' && Array.isArray(c.props.items)) {
+  //         if (c.props.items.some((it: any) => it?.status === 'bad')) return true;
+  //       }
+  //       if (c.component === 'ProcessingMeter' && Number(c.props?.level) >= 4) return true;
+  //       if (c.component === 'MacroDistribution') {
+  //         const carbs = Number(c.props?.carbs ?? 0);
+  //         const protein = Number(c.props?.protein ?? 0);
+  //         const fat = Number(c.props?.fat ?? 0);
+  //         const total = carbs + protein + fat || 1;
+  //         const carbsPct = (carbs / total) * 100;
+  //         if (carbsPct > 55) return true;
+  //       }
+  //     }
+  //     return false;
+  //   };
 
-    if (hasWarningCard || detectConcerns()) {
-      score = Math.min(score, 49);
-    }
+  //   if (hasWarningCard || detectConcerns()) {
+  //     score = Math.min(score, 49);
+  //   }
 
-    return { score, tips };
-  };
+  //   return { score, tips };
+  // };
 
   // Auto-scroll to bottom when chat updates
   useEffect(() => {
@@ -354,180 +366,176 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-emerald-50 via-teal-50 to-cyan-50">
-      <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
-        
-        {/* Header (Your styled header) */}
-        <div className="relative w-full max-w-5xl mx-auto pt-6 pb-12 px-6 text-center">
-            <div className="absolute top-6 right-6">
-                <Button variant="outline" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="rounded-full">
-                    {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-                </Button>
-            </div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold uppercase mb-4">
-                <Sparkles size={12} /> AI-Powered Nutritionist
-            </div>
-            <h1 className="text-4xl md:text-6xl font-extrabold bg-clip-text text-transparent bg-linear-to-r from-emerald-600 to-teal-600">
-                AI Nutrient Analyzer
-            </h1>
+    <div className="flex flex-col h-screen bg-linear-to-br from-emerald-50 via-teal-50 to-cyan-50 overflow-hidden">
+  
+      {/* -----------------------------------------------------------------
+          1. HEADER (Compact & Fixed Top)
+          ----------------------------------------------------------------- */}
+      <header className="shrink-0 pt-4 pb-2 px-6 text-center z-20 bg-emerald-50/50 backdrop-blur-sm">
+        <div className="absolute top-4 right-4">
+          <Button variant="outline" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="rounded-full w-8 h-8">
+            {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          </Button>
         </div>
+        
+        <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase mb-2">
+          <Sparkles size={10} /> AI-Powered Nutritionist
+        </div>
+        <h1 className="text-2xl md:text-3xl font-extrabold bg-clip-text text-transparent bg-linear-to-r from-emerald-600 to-teal-600">
+          AI Nutrient Analyzer
+        </h1>
+      </header>
 
-        <div className="grid lg:grid-cols-12 gap-6 h-200">
+      {/* -----------------------------------------------------------------
+          2. MESSAGES AREA (Flexible Middle - Scrollable)
+          ----------------------------------------------------------------- */}
+      <main className="flex-1 overflow-y-auto px-4 py-4 scroll-smooth" ref={scrollRef}>
+        <div className="max-w-3xl mx-auto space-y-6 pb-4">
           
-          {/* LEFT COLUMN: Input Controls (Sticky) */}
-          <div className="lg:col-span-4 space-y-4">
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-6 border border-white/50 h-full flex flex-col">
-               <h2 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
-                 <Camera className="text-emerald-500" /> New Analysis
-               </h2>
-               
-               {/* Upload Area */}
-               {!imagePreview ? (
-                <label className="flex-1 flex flex-col items-center justify-center border-3 border-dashed border-emerald-100 rounded-2xl cursor-pointer hover:bg-emerald-50/50 transition-colors">
-                  <Camera className="w-12 h-12 mb-3 text-emerald-300" />
-                  <span className="text-sm text-gray-400 font-medium">Tap to upload food label</span>
-                  <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
-                </label>
-              ) : (
-                <div className="relative group rounded-2xl overflow-hidden border border-emerald-100 shadow-sm">
-                  <img src={imagePreview} className="w-full h-48 object-cover" alt="Preview" />
-                  <button onClick={resetInput} className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1.5 hover:bg-red-500 transition-colors">
-                    <X size={14} />
-                  </button>
+          {/* Empty State */}
+          {chatHistory.length === 0 && !object && (
+            <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-60 mt-20">
+              <div className="bg-white/50 p-6 rounded-full mb-4">
+                <Bot size={48} className="text-emerald-200" />
+              </div>
+              <p className="font-medium">Upload a food label or ask a question to start.</p>
+            </div>
+          )}
+
+          {/* History Loop */}
+          {chatHistory.map((msg, i) => (
+            <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              {/* AI Avatar */}
+              {msg.role === 'assistant' && (
+                <div className="w-8 h-8 rounded-full bg-linear-to-br from-emerald-400 to-teal-500 flex items-center justify-center shrink-0 shadow-sm mt-1">
+                  <Sparkles size={14} className="text-white" />
                 </div>
               )}
 
-              {/* Text Input */}
-              <div className="mt-4">
-                  <label className="text-xs font-bold text-gray-500 uppercase ml-1">Context / Prompt</label>
-                  <textarea
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    className="w-full mt-1 border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white/50 text-black"
-                    placeholder="E.g. Is this safe for a diabetic?"
-                    rows={3}
-                  />
+              <div className={`max-w-[85%] lg:max-w-[75%] space-y-2 ${msg.role === 'user' ? 'items-end flex flex-col' : ''}`}>
+                
+                {/* User Image Thumbnail */}
+                {msg.role === 'user' && msg.image && (
+                  <img src={msg.image} alt="User upload" className="w-40 h-auto rounded-2xl border-2 border-white shadow-sm" />
+                )}
+                
+                {/* User Text */}
+                {msg.role === 'user' && msg.content && (
+                  <div className="bg-gray-800 text-white px-4 py-2.5 rounded-2xl rounded-tr-none text-sm shadow-md">
+                    {msg.content}
+                  </div>
+                )}
+
+                {/* AI Response (Components) */}
+                {msg.role === 'assistant' && Array.isArray(msg.content) && (
+                  <div className="space-y-3 w-full">
+                    {synthesizeWarningIfNeeded(msg.content).map((item: any, idx: number) => {
+                      const Component = COMPONENT_MAP[item.component];
+                      const extraProps = item.component === 'SmartFollowUp' ? { onSelect: handleFollowUpSelect } : {};
+                      return Component ? (
+                        <ErrorBoundary key={idx}>
+                          <Component {...item.props} {...extraProps} />
+                        </ErrorBoundary>
+                      ) : null;
+                    })}
+                  </div>
+                )}
               </div>
 
-              {/* Action Button */}
-              <button
-                onClick={analyzeNutrients}
-                disabled={(!imageBase64 && !prompt) || isLoading}
-                className="w-full mt-4 bg-linear-to-r from-emerald-500 to-teal-500 text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2 cursor-pointer"
-              >
-                {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles size={18} />}
-                {isLoading ? "Analyzing..." : "Ask AI Copilot"}
-              </button>
+              {/* User Avatar */}
+              {msg.role === 'user' && (
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0 mt-1">
+                  <User size={14} className="text-gray-500" />
+                </div>
+              )}
             </div>
+          ))}
+
+          {/* Active Streaming Response */}
+          {object?.uiComponents && (
+            <div className="flex gap-3 justify-start animate-in fade-in slide-in-from-bottom-2">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-1">
+                <Loader2 size={14} className="text-emerald-600 animate-spin" />
+              </div>
+              <div className="max-w-[85%] lg:max-w-[75%] space-y-3 w-full">
+                {synthesizeWarningIfNeeded(object.uiComponents).map((item, index) => {
+                  const Component = COMPONENT_MAP[item.component];
+                  const extraProps = item.component === 'SmartFollowUp' ? { onSelect: handleFollowUpSelect } : {};
+                  return Component ? (
+                    <ErrorBoundary key={index}>
+                      <Component {...item.props} {...extraProps} />
+                    </ErrorBoundary>
+                  ) : null;
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Error Toast */}
+          {error && (
+            <div className="p-3 bg-red-50 text-red-600 rounded-xl border border-red-100 text-center text-sm mx-auto max-w-sm">
+              Unable to complete analysis. Please try again.
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* -----------------------------------------------------------------
+          3. INPUT AREA (Fixed Bottom - ~20% Height)
+          ----------------------------------------------------------------- */}
+      <footer className="shrink-0 bg-white/80 backdrop-blur-md border-t border-gray-200 p-4 h-[20vh] min-h-[160px] flex flex-col justify-center">
+        <div className="max-w-3xl mx-auto w-full h-full flex flex-col gap-3">
+          
+          {/* Row 1: Image Preview (if active) OR Context Hints */}
+          <div className="flex-1 min-h-0 relative">
+            {imagePreview ? (
+              <div className="h-full w-fit relative group rounded-xl overflow-hidden border border-emerald-100 shadow-sm mx-auto md:mx-0">
+                <img src={imagePreview} className="h-full w-auto object-cover" alt="Preview" />
+                <button onClick={resetInput} className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-red-500 transition-colors">
+                  <X size={12} />
+                </button>
+              </div>
+            ) : (
+              <div className="h-full flex items-center justify-center border-2 border-dashed border-emerald-100 rounded-xl bg-emerald-50/30 text-emerald-400 text-xs font-medium cursor-pointer hover:bg-emerald-50 transition-colors" onClick={() => document.getElementById('file-upload')?.click()}>
+                <span className="flex items-center gap-2"><Camera size={16} /> Optional: Tap to attach food label</span>
+              </div>
+            )}
           </div>
 
-          {/* RIGHT COLUMN: Conversation Feed */}
-          <div className="lg:col-span-8 bg-white/60 backdrop-blur-md rounded-3xl shadow-xl border border-white/50 overflow-hidden flex flex-col">
+          {/* Row 2: Input Bar */}
+          <div className="flex gap-2 items-end">
+            {/* Hidden File Input Triggered by Button */}
+            <input id="file-upload" type="file" accept="image/*" hidden onChange={handleImageUpload} />
             
-            {/* Scrollable Chat Area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-8 scroll-smooth" ref={scrollRef}>
-                
-                {chatHistory.length === 0 && !object && (
-                    <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-60">
-                        <Bot size={48} className="mb-4" />
-                        <p>No analysis yet. Upload a photo to start.</p>
-                    </div>
-                )}
+            <button 
+              onClick={() => document.getElementById('file-upload')?.click()}
+              className="p-3 rounded-xl bg-gray-100 text-gray-500 hover:bg-emerald-100 hover:text-emerald-600 transition-colors shrink-0"
+              title="Upload Image"
+            >
+              <Camera size={20} />
+            </button>
 
-                {/* 1. Render History */}
-                {chatHistory.map((msg, i) => (
-                    <div key={i} className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        
-                        {/* AI Avatar (Left) */}
-                        {msg.role === 'assistant' && (
-                            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-1">
-                                <Sparkles size={14} className="text-emerald-600" />
-                            </div>
-                        )}
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); analyzeNutrients(); }}}
+              className="flex-1 bg-gray-100 border-transparent focus:bg-white focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200 rounded-xl px-4 py-3 text-sm resize-none outline-none transition-all"
+              placeholder="Ask a question or explain the image..."
+              rows={1}
+              style={{ minHeight: '46px', maxHeight: '80px' }}
+            />
 
-                        <div className={`max-w-[85%] space-y-2 ${msg.role === 'user' ? 'items-end flex flex-col' : ''}`}>
-                            
-                            {/* User: Image Thumbnail */}
-                            {msg.role === 'user' && msg.image && (
-                                <img src={msg.image} alt="User upload" className="w-32 h-32 rounded-lg object-cover border-2 border-white shadow-sm" />
-                            )}
-                            
-                            {/* User: Text Bubble */}
-                            {msg.role === 'user' && msg.content && (
-                                <div className="bg-gray-800 text-white px-4 py-2 rounded-2xl rounded-tr-none text-sm shadow-md">
-                                    {msg.content}
-                                </div>
-                            )}
-
-                            {/* AI: Component Stack */}
-                            {msg.role === 'assistant' && Array.isArray(msg.content) && (
-                              <div className="space-y-4 w-full">
-                                {synthesizeWarningIfNeeded(msg.content).map((item: any, idx: number) => {
-                                  const Component = COMPONENT_MAP[item.component];
-                                  const extraProps = item.component === 'SmartFollowUp' ? { onSelect: handleFollowUpSelect } : {};
-                                  return Component ? (
-                                    <ErrorBoundary key={idx}>
-                                      <Component {...item.props} {...extraProps} />
-                                    </ErrorBoundary>
-                                  ) : null;
-                                })}
-                              </div>
-                            )}
-                        </div>
-
-                        {/* User Avatar (Right) */}
-                        {msg.role === 'user' && (
-                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0 mt-1">
-                                <User size={14} className="text-gray-500" />
-                            </div>
-                        )}
-                    </div>
-                ))}
-
-                {/* 2. Render Current Streaming Response (Active) */}
-                {object?.uiComponents && (
-                     <div className="flex gap-4 justify-start animate-in fade-in slide-in-from-bottom-2">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-1">
-                            <Loader2 size={14} className="text-emerald-600 animate-spin" />
-                        </div>
-                        <div className="max-w-[85%] space-y-4 w-full">
-                            {/* Nutrition score (computed client-side for quick feedback) */}
-                            {(() => {
-                              try {
-                                const { score, tips } = computeNutritionScore(object.uiComponents || []);
-                                return (
-                                  <ErrorBoundary key="nutrition-score">
-                                    <NutritionScore score={score} tips={tips} />
-                                  </ErrorBoundary>
-                                );
-                              } catch (e) {
-                                return null;
-                              }
-                            })()}
-
-                            {synthesizeWarningIfNeeded(object.uiComponents).map((item, index) => {
-                              const Component = COMPONENT_MAP[item.component];
-                              const extraProps = item.component === 'SmartFollowUp' ? { onSelect: handleFollowUpSelect } : {};
-                              return Component ? (
-                                <ErrorBoundary key={index}>
-                                  <Component {...item.props} {...extraProps} />
-                                </ErrorBoundary>
-                              ) : null;
-                            })}
-                        </div>
-                     </div>
-                )}
-                
-                {/* Error State */}
-                {error && (
-                    <div className="p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 text-center text-sm">
-                        Unable to complete analysis. Please try again.
-                    </div>
-                )}
-            </div>
+            <button
+              onClick={analyzeNutrients}
+              disabled={(!imageBase64 && !prompt) || isLoading}
+              className="p-3 rounded-xl bg-linear-to-r from-emerald-500 to-teal-500 text-white shadow-md hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 disabled:shadow-none shrink-0"
+            >
+              {isLoading ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
+            </button>
           </div>
         </div>
-      </div>
+      </footer>
+
     </div>
   );
 }
