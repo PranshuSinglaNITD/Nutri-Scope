@@ -1,12 +1,29 @@
-import React, { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+"use client";
+
+import React, { useState } from "react";
+import { ChevronDown } from "lucide-react";
 
 type Props = {
   title?: string;
-  explanation: string;
+  explanation?: string;
 };
 
-export default function ScienceExplainer({ title = 'Why this matters', explanation }: Props) {
+export default function ScienceExplainer({
+  title = "Why this matters",
+  explanation,
+}: Props) {
+  /* -------------------------------------------------------
+     HARD GUARD: Never render empty / low-value explainers
+     ------------------------------------------------------- */
+  if (
+    typeof explanation !== "string" ||
+    explanation.trim().length < 30 || // 🔥 minimum meaningful content
+    typeof title !== "string" ||
+    title.trim().length === 0
+  ) {
+    return null;
+  }
+
   const [open, setOpen] = useState(false);
 
   return (
@@ -30,7 +47,7 @@ export default function ScienceExplainer({ title = 'Why this matters', explanati
 
         <ChevronDown
           className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${
-            open ? 'rotate-180' : ''
+            open ? "rotate-180" : ""
           }`}
         />
       </button>
@@ -38,7 +55,7 @@ export default function ScienceExplainer({ title = 'Why this matters', explanati
       {/* content */}
       <div
         className={`relative px-4 pb-4 text-sm text-gray-700 leading-relaxed transition-all duration-300 ease-in-out
-          ${open ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}
+          ${open ? "max-h-96 opacity-100" : "max-h-0 opacity-0 overflow-hidden"}
         `}
       >
         {explanation}

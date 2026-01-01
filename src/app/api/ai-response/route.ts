@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     });
   }
 
-  const { imageBase64, userContext ,history} = parsed.data;
+  const { imageBase64, userContext, history } = parsed.data;
 
   // Read API key from environment. Prefer `GOOGLE_API_KEY`, fallback to `GENAI_API_KEY`.
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
@@ -49,6 +49,7 @@ export async function POST(req: Request) {
 
   try {
     const result = await generateObject({
+      
       // pass provider-specific options so the SDK can authenticate
       model: google('gemini-2.5-flash'),
       schema,
@@ -70,7 +71,7 @@ export async function POST(req: Request) {
             You must ONLY return a JSON object with a 'uiComponents' array.
             Each item in the array MUST follow this exact structure:
             {
-              "component": "WarningCard" | "HealthBadge" | "IngredientTable" | "ScienceExplainer" | "AlternativeSuggestionCard" | "ProcessingMeter" | "MacroDistribution" | "SmartFollowUp" | "ComparisonCard" | "QuickVerdict" | "DosAndDontsGrid" | "MethodologyStepper" | "NutritionScore",
+              "component": "WarningCard" | "HealthBadge" | "IngredientTable" | "ScienceExplainer" | "AlternativeSuggestionCard" | "ProcessingMeter" | "MacroDistribution" | "SmartFollowUp" | "ComparisonCard" | "QuickVerdict" | "DosAndDontsGrid" | "MethodologyStepper" | "NutritionScore" | "EvidenceSources" | "LongTermImpactCard",
               "props": { ...specific props for that component... }
             }
 
@@ -84,8 +85,49 @@ export async function POST(req: Request) {
             3. Use 'IngredientTable' to breakdown the Macro-nutrients or to list specific additives found in the text or image. Do not list every ingredient; filter for the most impactful ones (Sugar, Protein, Sodium, or additives).
               Props : { items : ["{ label: string; value: string; status: 'good' | 'bad' }"]
 
-            4. Use 'ScienceExplainer' to educate the user about complex chemical names (e.g., "Carrageenan", "Red 40") or to explain the metabolic impact of the food. Use this when the user needs to understand *why* an ingredient is flagged.
-              Props : { title : string, explaination : string}
+            4. Use 'ScienceExplainer' ONLY to educate the user about:
+- complex chemical names (e.g., "Carrageenan", "Red 40", "Acrylamide")
+- biological or metabolic effects of food processing (e.g., deep-frying, ultra-processing)
+
+DO NOT use ScienceExplainer for:
+- general advice
+- short warnings
+- step-by-step instructions
+- lists or bullet points
+
+Props MUST follow this EXACT structure:
+Props: {
+  title: string,            // clear, specific topic
+  explaination: string      // a single normal paragraph (plain text)
+}
+
+STRICT RULES:
+- The explaination MUST be a single continuous paragraph (no lists, no JSON, no steps)
+- The explaination MUST be at least 30 characters long
+- The explaination MUST explain cause-and-effect (why something happens and why it matters)
+- DO NOT render ScienceExplainer if you cannot provide meaningful educational content
+- DO NOT output empty strings, placeholders, or generic statements
+- DO NOT render ScienceExplainer when nested or structured props are required elsewhere (e.g., step arrays, tables, grids)
+- Use ScienceExplainer ONLY when a simple paragraph explanation is sufficient
+
+VALID EXAMPLE:
+
+{
+  "component": "ScienceExplainer",
+  "props": {
+    "title": "Why Deep-Frying Forms Acrylamide",
+    "explaination": "When starchy foods such as potatoes are cooked at very high temperatures, a chemical reaction occurs between sugars and amino acids, producing a compound called acrylamide. Research has linked high acrylamide exposure to increased cancer risk in animal studies, which is why frequent consumption of deep-fried foods is discouraged."
+  }
+}
+
+INVALID EXAMPLES (DO NOT OUTPUT):
+
+ explaination: ""
+ explaination: "Frying is unhealthy."
+ explaination: ["Point 1", "Point 2"]
+ explaination: { "step": "heat oil" }
+ Using ScienceExplainer when MethodologyStepper or IngredientTable is more appropriate
+
 
             5. Use 'AlternativeSuggestionCard' ONLY when the main verdict is negative (WarningCard is present). Suggest 1-3 healthier alternatives that satisfy the same craving or product category.
               Props : { suggestions : ["{title: string; reason: string; link: string}"]
@@ -118,7 +160,111 @@ export async function POST(req: Request) {
             Do NOT output flat JSON. Use the nested 'props' structure.
             If the image is blurry or text is unreadable, use 'ScienceExplainer' to ask the user to retake the photo.
             Only show the neccessary components and avoid unneccasary components
-            Keep the order of components so that it make the most sense`
+            Keep the order of components so that it make the most sense
+            
+           14. Use case : 'EvidenceSources'
+
+Use this component whenever scientific, medical, or health-related claims are made.
+
+Props MUST follow this EXACT structure.
+ALL fields are REQUIRED and must be non-empty.
+
+Props:
+{
+  sources: [
+    {
+      title: string,                 // short paper or guideline title
+      authority: "WHO" | "FDA" | "ICMR" | "NIH" | "Peer-Reviewed",
+      description: string,           // 1-line summary of relevance
+      confidence: number             // integer between 70 and 100
+    }
+  ]
+}
+
+Rules:
+- Include at least ONE source
+- DO NOT include empty objects
+- DO NOT omit any field
+- Confidence must be a NUMBER (not text, not string)
+- Render EvidenceSources IMMEDIATELY AFTER ScienceExplainer
+- If you cannot name a real authority-backed source, DO NOT render EvidenceSources at all
+
+VALID EXAMPLE (CORRECT):
+
+{
+  "component": "EvidenceSources",
+  "props": {
+    "sources": [
+      {
+        "title": "Ultra-processed foods and cardiometabolic risk",
+        "authority": "WHO",
+        "description": "WHO guidelines associate frequent consumption of ultra-processed foods with obesity and cardiovascular disease.",
+        "confidence": 92
+      }
+    ]
+  }
+}
+
+INVALID EXAMPLES (DO NOT OUTPUT):
+
+{ "sources": [{}] }
+{ "confidence": "%" }
+{ "authority": "Unknown" }
+Empty strings or missing fields
+
+Include EvidenceSources whenever ScienceExplainer makes a scientific or
+health-related claim AND a real authority-backed source can be named.
+
+If a credible source cannot be confidently named, DO NOT render EvidenceSources.
+
+dont render it when nested props are used 
+
+15. Use case : 'LongTermImpactCard'
+
+Use this component ONLY when repeated or long-term consumption of the food may
+affect health over months or years (e.g., ultra-processed foods, high sugar,
+trans fats, excess sodium).
+
+Props MUST follow this EXACT structure:
+Props: {
+  title: string,            // e.g. "Long-Term Health Impact"
+  impacts: [
+    {
+      effect: string,       // e.g. "Increased cardiovascular risk"
+      explanation: string,  // 1–2 sentences explaining why
+      severity: "low" | "medium" | "high"
+    }
+  ],
+  timeframe: string         // e.g. "Over months to years"
+}
+
+STRICT RULES:
+- DO NOT render if impacts array is empty
+- Each explanation must be a normal paragraph (no lists, no steps)
+- DO NOT render when nested or tabular components are more suitable
+- Render LongTermImpactCard AFTER ScienceExplainer when both are present.
+LongTermImpactCard may appear independently if long-term effects are clear.
+
+VALID EXAMPLE:
+
+{
+  "component": "LongTermImpactCard",
+  "props": {
+    "title": "Long-Term Health Impact",
+    "timeframe": "Over months to years",
+    "impacts": [
+      {
+        "effect": "Higher cardiovascular disease risk",
+        "explanation": "Frequent intake of fried and ultra-processed foods increases saturated fat and inflammatory markers, which are associated with heart disease over time.",
+        "severity": "high"
+      }
+    ]
+  }
+}
+
+
+`
+
         },
         ...history.map(msg => ({
           role: msg.role as 'user' | 'assistant',
@@ -133,6 +279,7 @@ export async function POST(req: Request) {
         }
       ],
     });
+
 
     return result.toJsonResponse();
   } catch (err: any) {

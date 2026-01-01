@@ -19,6 +19,8 @@ import { Button } from "@/components/ui/button";
 import { DosAndDontsGrid } from "@/components/DosAndDontsGrid";
 import { MethodologyStepper } from "@/components/MethodologyStepper";
 import { QuickVerdict } from "@/components/QuickVerdict";
+import EvidenceSources from "@/components/EvidenceSources"
+import LongTermImpactCard from '@/components/LongTermImpactCard'
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 // 1️⃣ Component Registry
@@ -35,7 +37,9 @@ const COMPONENT_MAP: Record<string, React.FC<any>> = {
   DosAndDontsGrid,
   MethodologyStepper,
   QuickVerdict,
-  NutritionScore
+  NutritionScore,
+  EvidenceSources,
+  LongTermImpactCard
 };
 
 
@@ -406,11 +410,11 @@ export default function Home() {
           {/* Row 2: Input Bar */}
           <div className="flex gap-2 items-end">
             {/* Hidden File Input Triggered by Button */}
-            <input id="file-upload" type="file" accept="image/*" hidden onChange={handleImageUpload} />
+            <input className="cursor-pointer" id="file-upload" type="file" accept="image/*" hidden onChange={handleImageUpload} />
             
             <button 
               onClick={() => document.getElementById('file-upload')?.click()}
-              className="p-3 rounded-xl bg-gray-100 text-gray-500 hover:bg-emerald-100 hover:text-emerald-600 transition-colors shrink-0"
+              className="p-3 rounded-xl bg-gray-100 text-gray-500 hover:bg-emerald-100 hover:text-emerald-600 transition-colors shrink-0 cursor-pointer"
               title="Upload Image"
             >
               <Camera size={20} />
@@ -420,7 +424,7 @@ export default function Home() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); analyzeNutrients(); }}}
-              className="flex-1 bg-gray-100 border-transparent focus:bg-white focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200 rounded-xl px-4 py-3 text-sm resize-none outline-none transition-all"
+              className="text-black flex-1 bg-gray-100 border-transparent focus:bg-white focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200 rounded-xl px-4 py-3 text-sm resize-none outline-none transition-all"
               placeholder="Ask a question or explain the image..."
               rows={1}
               style={{ minHeight: '46px', maxHeight: '80px' }}
@@ -429,7 +433,7 @@ export default function Home() {
             <button
               onClick={analyzeNutrients}
               disabled={(!imageBase64 && !prompt) || isLoading}
-              className="p-3 rounded-xl bg-linear-to-r from-emerald-500 to-teal-500 text-white shadow-md hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 disabled:shadow-none shrink-0"
+              className="cursor-pointer p-3 rounded-xl bg-linear-to-r from-emerald-500 to-teal-500 text-white shadow-md hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 disabled:shadow-none shrink-0"
             >
               {isLoading ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
             </button>
